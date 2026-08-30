@@ -11,6 +11,10 @@
 pub use self::{
     compiler::compile,
     ffi::{module_to_object, object_to_shared_lib, OptLevel},
+    pedersen_cache::{
+        configure_pedersen_cache, pedersen_cache_metrics, set_pedersen_cache_enabled,
+        PedersenCacheConfig, PedersenCacheMetrics, DEFAULT_PEDERSEN_CACHE_CAPACITY,
+    },
     runtime::FormattedItem,
     values::Value,
 };
@@ -28,6 +32,7 @@ mod ffi;
 mod libfuncs;
 pub mod metadata;
 pub mod module;
+mod pedersen_cache;
 mod runtime;
 pub mod starknet;
 pub mod starknet_stub;
