@@ -12,8 +12,8 @@ pub use self::{
     compiler::compile,
     ffi::{module_to_object, object_to_shared_lib, OptLevel},
     pedersen_cache::{
-        configure_pedersen_cache, pedersen_cache_metrics, set_pedersen_cache_enabled,
-        PedersenCacheConfig, PedersenCacheMetrics, DEFAULT_PEDERSEN_CACHE_CAPACITY,
+        configure_pedersen_cache, pedersen_cache_metrics, PedersenCacheConfig,
+        PedersenCacheMetrics, DEFAULT_PEDERSEN_CACHE_CAPACITY,
     },
     runtime::FormattedItem,
     values::Value,

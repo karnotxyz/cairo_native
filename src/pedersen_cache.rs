@@ -21,7 +21,8 @@ thread_local! {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PedersenCacheConfig {
     pub enabled: bool,
-    /// Maximum entries retained by each native execution thread.
+    /// Maximum entries retained by each native execution thread. A capacity of
+    /// zero retains no entries.
     pub capacity: usize,
 }
 
@@ -47,19 +48,10 @@ pub struct PedersenCacheMetrics {
 /// Configures native-runtime Pedersen memoization.
 ///
 /// Configure this once during process startup, before native execution workers
-/// begin handling transactions.
+/// begin handling transactions. Runtime reconfiguration is not supported.
 pub fn configure_pedersen_cache(config: PedersenCacheConfig) {
-    ENABLED.store(false, Ordering::Relaxed);
     CAPACITY.store(config.capacity, Ordering::Relaxed);
     ENABLED.store(config.enabled, Ordering::Relaxed);
-}
-
-/// Enables or disables native-runtime Pedersen memoization.
-///
-/// Configure this once during process startup, before native execution workers
-/// begin handling transactions.
-pub fn set_pedersen_cache_enabled(enabled: bool) {
-    ENABLED.store(enabled, Ordering::Relaxed);
 }
 
 pub fn pedersen_cache_metrics() -> PedersenCacheMetrics {
@@ -130,12 +122,34 @@ mod tests {
         insert(lhs, rhs, result);
         assert_eq!(get(lhs, rhs), None);
 
-        set_pedersen_cache_enabled(true);
+        configure_pedersen_cache(PedersenCacheConfig {
+            enabled: true,
+            ..Default::default()
+        });
         insert(lhs, rhs, result);
         assert_eq!(get(lhs, rhs), Some(result));
 
-        set_pedersen_cache_enabled(false);
+        configure_pedersen_cache(PedersenCacheConfig::default());
         clear();
+    }
+
+    #[test]
+    fn zero_capacity_retains_no_entries() {
+        let _guard = TEST_MUTEX.lock().unwrap();
+        configure_pedersen_cache(PedersenCacheConfig {
+            enabled: true,
+            capacity: 0,
+        });
+        clear();
+
+        let lhs = Felt::from(1);
+        let rhs = Felt::from(2);
+        insert(lhs, rhs, Felt::from(3));
+
+        assert_eq!(get(lhs, rhs), None);
+        CACHE.with(|cache| assert!(cache.borrow().is_empty()));
+
+        configure_pedersen_cache(PedersenCacheConfig::default());
     }
 
     #[test]
