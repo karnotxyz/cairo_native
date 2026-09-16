@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 
 use crate::{
+    pedersen_cache, poseidon_cache,
     starknet::{ArrayAbi, Felt252Abi},
     types::array::ArrayMetadata,
     utils::{blake_utils, libc_malloc, BuiltinCosts},
@@ -109,7 +110,11 @@ pub unsafe extern "C" fn cairo_native__libfunc__pedersen(
     let rhs = Felt::from_bytes_le(&rhs);
 
     // Compute pedersen hash and copy the result into `dst`.
-    let res = starknet_types_core::hash::Pedersen::hash(&lhs, &rhs);
+    let res = pedersen_cache::get(lhs, rhs).unwrap_or_else(|| {
+        let result = starknet_types_core::hash::Pedersen::hash(&lhs, &rhs);
+        pedersen_cache::insert(lhs, rhs, result);
+        result
+    });
     *dst = res.to_bytes_le();
 }
 
@@ -142,7 +147,12 @@ pub unsafe extern "C" fn cairo_native__libfunc__hades_permutation(
     ];
 
     // Compute Poseidon permutation.
-    starknet_types_core::hash::Poseidon::hades_permutation(&mut state);
+    let input = state;
+    state = poseidon_cache::get(input).unwrap_or_else(|| {
+        starknet_types_core::hash::Poseidon::hades_permutation(&mut state);
+        poseidon_cache::insert(input, state);
+        state
+    });
 
     // Write back the results.
     *op0 = state[0].to_bytes_le();
